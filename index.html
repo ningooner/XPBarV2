@@ -3,8 +3,13 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Class XP Progress — 8‑Bit + SFX</title>
+<title>Class XP Progress — 8-Bit + SFX</title>
 <style>
+  /* Put these files next to this HTML:
+     - game-font.ttf
+     - levelup.mp3
+     - congratulations.mp3
+  */
   @font-face{
     font-family: "GameFont";
     src: url("game-font.ttf") format("truetype");
@@ -13,14 +18,14 @@
 
   :root{
     --bg:#000; --text:#fff; --accent:#ff2a2a; --accent-d:#b00000; --border:#fff; --muted:#bbb;
-    --flash-bg:#fff; --flash-red:#ff2a2a;
+    --flash-red:#ff2a2a;
   }
 
   *{box-sizing:border-box}
   html,body{height:100%}
   body{
     margin:0; background:var(--bg); color:var(--text);
-    font-family: "GameFont", monospace; image-rendering: pixelated;
+    font-family:"GameFont", monospace; image-rendering: pixelated;
     display:flex; align-items:center; justify-content:center; padding:18px;
   }
 
@@ -32,15 +37,20 @@
     background:#111;
   }
 
+  /* Big XP bar */
   .bar-outer{ height:80px; position:relative; overflow:hidden; }
   .bar-inner{ position:absolute; inset:8px; background:#000; outline:4px solid var(--border); }
   .bar-fill{
     position:absolute; top:8px; bottom:8px; left:8px; width:0%;
     background: repeating-linear-gradient(90deg, var(--accent) 0px, var(--accent) 8px, var(--accent-d) 8px, var(--accent-d) 16px);
-    transition: width .25s steps(8, end);
+    transition: width .25s steps(8,end);
   }
-  .bar-label{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:32px; letter-spacing:1px; text-shadow: 0 0 8px rgba(255,255,255,.25); user-select:none; }
+  .bar-label{
+    position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+    font-size:32px; letter-spacing:1px; text-shadow:0 0 8px rgba(255,255,255,.25); user-select:none;
+  }
 
+  /* Control panel */
   .panel{ padding:14px; display:grid; grid-template-columns: 1fr 1fr auto; gap:12px; align-items:end; }
   .panel.pixel-frame{ background:#111; }
   .field label{ display:block; font-size:14px; color:var(--muted); margin-bottom:6px; }
@@ -48,18 +58,29 @@
     width:100%; background:#000; color:var(--text); border:4px solid var(--border);
     padding:10px 8px; font-family:"GameFont", monospace; font-size:20px; outline:none;
   }
-  input[type="number"]::-webkit-outer-spin-button, input[type="number"]::-webkit-inner-spin-button{ -webkit-appearance:none; margin:0; }
+  input[type="number"]::-webkit-outer-spin-button,
+  input[type="number"]::-webkit-inner-spin-button{ -webkit-appearance:none; margin:0; }
+
+  .buttons{ display:flex; gap:10px; }
   button{
     height:46px; background:var(--accent); color:#000; border:4px solid var(--border);
     font-family:"GameFont", monospace; font-size:18px; padding:0 16px; cursor:pointer;
   }
-  button:active{ transform: translateY(1px); }
+  button.secondary{ background:#fff; color:#000; }
+  button:active{ transform:translateY(1px); }
 
-  .stats{ grid-column: 1 / -1; display:flex; justify-content:space-between; align-items:center; color:var(--muted); font-size:16px; }
+  .stats{
+    grid-column:1 / -1; display:flex; justify-content:space-between; align-items:center;
+    color:var(--muted); font-size:16px;
+  }
   .stats strong{ color:var(--text); }
 
-  .scanlines{ position:fixed; inset:0; pointer-events:none; mix-blend-mode:soft-light; opacity:.08;
-    background: repeating-linear-gradient( to bottom, rgba(255,255,255,.06) 0px, rgba(255,255,255,.06) 2px, rgba(0,0,0,0) 2px, rgba(0,0,0,0) 4px );
+  /* Subtle scanlines */
+  .scanlines{
+    position:fixed; inset:0; pointer-events:none; mix-blend-mode:soft-light; opacity:.08;
+    background: repeating-linear-gradient(to bottom,
+      rgba(255,255,255,.06) 0px, rgba(255,255,255,.06) 2px,
+      rgba(0,0,0,0) 2px, rgba(0,0,0,0) 4px);
   }
 
   /* Flash overlay */
@@ -67,28 +88,28 @@
     position:fixed; inset:0; display:flex; align-items:center; justify-content:center;
     background:rgba(0,0,0,.85); color:var(--text);
     font-size:42px; text-align:center; z-index:999;
-    opacity:0; pointer-events:none; transition: opacity .15s steps(5,end);
+    opacity:0; pointer-events:none; transition:opacity .15s steps(5,end);
     border:8px solid var(--border);
   }
   .flash.show{ opacity:1; pointer-events:auto; }
   .flash .inner{
     padding:18px 28px; background:#000; border:6px solid var(--border);
-    box-shadow: 0 0 0 6px var(--flash-red) inset, 0 0 0 12px var(--border) inset;
+    box-shadow:0 0 0 6px var(--flash-red) inset, 0 0 0 12px var(--border) inset;
   }
-  .flash.small{ font-size:36px; }
   .flash h1{ margin:0 0 10px; }
   .flash p{ margin:0; font-size:20px; color:#ddd; }
-
 </style>
 </head>
 <body>
   <div class="wrap">
+    <!-- Big XP Bar -->
     <div class="pixel-frame bar-outer" aria-label="XP progress">
       <div class="bar-inner"></div>
       <div class="bar-fill" id="bar"></div>
       <div class="bar-label" id="percent">0%</div>
     </div>
 
+    <!-- Inputs panel -->
     <div class="pixel-frame panel">
       <div class="field">
         <label for="earned">Earned XP</label>
@@ -98,7 +119,11 @@
         <label for="total">Total XP</label>
         <input id="total" type="number" min="1" step="1" placeholder="e.g., 1200">
       </div>
-      <div><button id="update">UPDATE</button></div>
+      <div class="buttons">
+        <button id="update">UPDATE</button>
+        <button id="reset" class="secondary">RESET</button>
+      </div>
+
       <div class="stats">
         <div><strong id="earnedOut">0</strong> / <strong id="totalOut">0</strong> XP</div>
         <div><strong id="level">LEVEL 0</strong></div>
@@ -107,7 +132,7 @@
   </div>
   <div class="scanlines"></div>
 
-  <!-- Audio (user interaction required in most browsers; triggered on UPDATE) -->
+  <!-- Audio (triggered on UPDATE/Enter) -->
   <audio id="sfx-level" src="levelup.mp3" preload="auto"></audio>
   <audio id="sfx-gg" src="congratulations.mp3" preload="auto"></audio>
 
@@ -127,34 +152,25 @@
 
   const params = new URLSearchParams(location.search);
 
-  function loadInitial(){
-    const e = params.get("earned") ?? localStorage.getItem("xp_earned");
-    const t = params.get("total")  ?? localStorage.getItem("xp_total");
-    if(e) earned.value = e;
-    if(t) total.value  = t;
-    // Load last tier to avoid firing immediately on page load
-    lastTier = parseInt(localStorage.getItem("xp_last_tier") || "0", 10);
-    update(false);
-  }
-
   // Tiers at 25, 50, 75, 100
-  const tiers = [25, 50, 75, 100];
   let lastTier = 0; // highest tier already celebrated
 
   function getTier(pct){
     if(pct >= 100) return 100;
-    if(pct >= 75) return 75;
-    if(pct >= 50) return 50;
-    if(pct >= 25) return 25;
+    if(pct >= 75)  return 75;
+    if(pct >= 50)  return 50;
+    if(pct >= 25)  return 25;
     return 0;
   }
 
-  function showFlash(text, isCongrats){
-    flashContent.innerHTML = text;
+  function showFlash(html, isCongrats){
+    flashContent.innerHTML = html;
     flash.classList.add("show");
-    // Auto hide after 2.2s
-    setTimeout(()=> flash.classList.remove("show"), isCongrats ? 15000 : 10000);
+    clearTimeout(flash._timer);
+    flash._timer = setTimeout(()=> flash.classList.remove("show"), isCongrats ? 2600 : 1800);
   }
+  // Allow dismiss by click
+  flash.addEventListener("click", () => flash.classList.remove("show"));
 
   function levelFromPct(p){
     if(p >= 100) return 5;
@@ -197,10 +213,34 @@
     document.title = `Class XP: ${p}%`;
   }
 
+  function loadInitial(){
+    const e = params.get("earned") ?? localStorage.getItem("xp_earned");
+    const t = params.get("total")  ?? localStorage.getItem("xp_total");
+    if(e) earned.value = e;
+    if(t) total.value  = t;
+    lastTier = parseInt(localStorage.getItem("xp_last_tier") || "0", 10);
+    update(false); // draw without sounds on load
+  }
+
+  // Events
   $("update").addEventListener("click", () => update(true));
   [earned, total].forEach(inp => inp.addEventListener("keydown", e => {
     if(e.key === "Enter") update(true);
   }));
+
+  // RESET button: clear storage, inputs, overlay, sounds, and redraw to 0%
+  $("reset").addEventListener("click", () => {
+    localStorage.removeItem("xp_earned");
+    localStorage.removeItem("xp_total");
+    localStorage.removeItem("xp_last_tier");
+    earned.value = "";
+    total.value = "";
+    lastTier = 0;
+    try { sfxLevel.pause(); sfxLevel.currentTime = 0; } catch(e){}
+    try { sfxGG.pause();    sfxGG.currentTime = 0; } catch(e){}
+    flash.classList.remove("show");
+    update(false);
+  });
 
   loadInitial();
 })();
