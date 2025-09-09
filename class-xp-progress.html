@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Class XP Progress</title>
+<style>
+  :root{
+    --bg:#0f0f12; --card:#1b1e27; --text:#e5e7eb; --muted:#9ca3af; --barbg:#2b2f3a;
+    --grad1:#22c55e; --grad2:#3b82f6;
+  }
+  *{box-sizing:border-box} html,body{height:100%}
+  body{margin:0;background:#0f0f12;color:var(--text);font-family:system-ui,Segoe UI,Roboto,Helvetica,Arial;
+       display:flex;align-items:center;justify-content:center;padding:24px}
+  .app{width:min(900px,95vw);background:var(--card);border-radius:16px;padding:20px 20px 18px;
+       border:1px solid #2d3140;box-shadow:0 12px 40px rgba(0,0,0,.35)}
+  h1{margin:0 0 6px;font-size:clamp(22px,4vw,32px)}
+  .sub{margin:0 0 16px;color:var(--muted);font-size:14px}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px}
+  label{display:block;margin-bottom:6px;color:var(--muted);font-size:13px}
+  input{width:100%;background:#0f1116;color:var(--text);font-size:18px;padding:12px 10px;border-radius:12px;
+        border:1px solid #33384a;outline:none}
+  input:focus{border-color:#3b82f6;box-shadow:0 0 0 3px rgba(59,130,246,.15)}
+  .controls{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0 18px}
+  button{background:#232637;border:1px solid #33384a;color:var(--text);padding:10px 12px;border-radius:10px;
+         cursor:pointer;font-size:14px}
+  .primary{background:linear-gradient(180deg,#3b82f6,#1e40af);border-color:#1d4ed8}
+  .success{background:linear-gradient(180deg,#22c55e,#15803d);border-color:#16a34a}
+  .barwrap{height:42px;background:var(--barbg);border:1px solid #33384a;border-radius:14px;position:relative;overflow:hidden}
+  .bar{position:absolute;inset:0 auto 0 0;width:0%;background:linear-gradient(90deg,var(--grad1),var(--grad2));
+       transition:width .25s ease}
+  .barlabel{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-weight:800}
+  .stats{display:flex;justify-content:space-between;align-items:center;margin-top:10px;color:var(--muted)}
+  .big{font-size:clamp(26px,6vw,46px);font-weight:900;color:var(--text)}
+  .badge{font-size:12px;padding:6px 10px;border-radius:999px;border:1px solid #33384a;background:#0f1116}
+  .row{display:flex;align-items:center;gap:10px}
+</style>
+</head>
+<body>
+  <div class="app">
+    <h1>Class XP Progress</h1>
+    <p class="sub">Type earned XP and total XP. Use fullscreen on the projector.</p>
+
+    <div class="grid">
+      <div>
+        <label for="earned">Earned XP</label>
+        <input id="earned" type="number" min="0" step="1" placeholder="e.g., 820">
+      </div>
+      <div>
+        <label for="total">Total XP</label>
+        <input id="total" type="number" min="1" step="1" placeholder="e.g., 1200">
+      </div>
+    </div>
+
+    <div class="controls">
+      <button class="primary" id="update">Update Progress</button>
+      <button id="reset">Reset</button>
+      <button class="success" id="fullscreen">Fullscreen</button>
+      <span class="badge" id="level">Level 0</span>
+    </div>
+
+    <div class="barwrap" aria-label="XP progress">
+      <div class="bar" id="bar"></div>
+      <div class="barlabel" id="percent">0%</div>
+    </div>
+
+    <div class="stats">
+      <div class="row"><strong id="earnedOut">0</strong> / <strong id="totalOut">0</strong> XP</div>
+      <div class="big" id="bigPercent">0%</div>
+    </div>
+  </div>
+
+<script>
+(function(){
+  const $ = id => document.getElementById(id);
+  const earned = $("earned"), total = $("total");
+  const bar = $("bar"), percent = $("percent"), big = $("bigPercent");
+  const earnedOut = $("earnedOut"), totalOut = $("totalOut"), lvl = $("level");
+
+  const params = new URLSearchParams(location.search);
+
+  function loadInitial(){
+    const e = params.get("earned") ?? localStorage.getItem("xp_earned");
+    const t = params.get("total")  ?? localStorage.getItem("xp_total");
+    if(e) earned.value = e;
+    if(t) total.value  = t;
+    update();
+  }
+
+  function levelFromPct(p){
+    if(p >= 100) return 5;
+    if(p >= 80)  return 4;
+    if(p >= 60)  return 3;
+    if(p >= 40)  return 2;
+    if(p >= 20)  return 1;
+    return 0;
+  }
+
+  function clamp(n,min,max){ return Math.max(min, Math.min(max, n)); }
+
+  function update(){
+    const e = Math.max(0, parseInt(earned.value || 0, 10));
+    const t = Math.max(1, parseInt(total.value || 1, 10));
+    const p = clamp(Math.round((e/t)*100), 0, 999);
+    bar.style.width = Math.min(p, 100) + "%";
+    percent.textContent = p + "%";
+    big.textContent = p + "%";
+    earnedOut.textContent = e.toLocaleString();
+    totalOut.textContent = t.toLocaleString();
+    lvl.textContent = "Level " + levelFromPct(p);
+    localStorage.setItem("xp_earned", e);
+    localStorage.setItem("xp_total", t);
+    document.title = `Class XP: ${p}%`;
+  }
+
+  $("update").addEventListener("click", update);
+  $("reset").addEventListener("click", () => {
+    earned.value = ""; total.value = "";
+    update();
+  });
+  $("fullscreen").addEventListener("click", () => {
+    const el = document.documentElement;
+    if (document.fullscreenElement) document.exitFullscreen();
+    else el.requestFullscreen().catch(()=>{});
+  });
+
+  [earned, total].forEach(inp => inp.addEventListener("keydown", e => {
+    if(e.key === "Enter") update();
+  }));
+
+  loadInitial();
+})();
+</script>
+</body>
+</html>
