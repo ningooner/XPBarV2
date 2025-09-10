@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Class XP Progress — 8-Bit + SFX</title>
+<title>Speedrun XP — 8-Bit + SFX</title>
 <style>
   /* Put these files next to this HTML:
      - game-font.ttf
@@ -11,9 +11,9 @@
      - congratulations.mp3
   */
   @font-face{
-    font-family: "GameFont";
-    src: url("game-font.ttf") format("truetype");
-    font-display: swap;
+    font-family:"GameFont";
+    src:url("game-font.ttf") format("truetype");
+    font-display:swap;
   }
 
   :root{
@@ -25,7 +25,7 @@
   html,body{height:100%}
   body{
     margin:0; background:var(--bg); color:var(--text);
-    font-family:"GameFont", monospace; image-rendering: pixelated;
+    font-family:"GameFont", monospace; image-rendering:pixelated;
     display:flex; align-items:center; justify-content:center; padding:18px;
   }
 
@@ -33,8 +33,17 @@
 
   .pixel-frame{
     border:4px solid var(--border);
-    box-shadow: 0 0 0 4px var(--bg) inset, 0 0 0 8px var(--border) inset;
+    box-shadow:0 0 0 4px var(--bg) inset, 0 0 0 8px var(--border) inset;
     background:#111;
+  }
+
+  /* Title */
+  .title{
+    margin:0;
+    text-align:center;
+    font-size:36px;
+    letter-spacing:2px;
+    padding:16px 14px;
   }
 
   /* Big XP bar */
@@ -42,8 +51,10 @@
   .bar-inner{ position:absolute; inset:8px; background:#000; outline:4px solid var(--border); }
   .bar-fill{
     position:absolute; top:8px; bottom:8px; left:8px; width:0%;
-    background: repeating-linear-gradient(90deg, var(--accent) 0px, var(--accent) 8px, var(--accent-d) 8px, var(--accent-d) 16px);
-    transition: width .25s steps(8,end);
+    background:repeating-linear-gradient(90deg,
+      var(--accent) 0px, var(--accent) 8px,
+      var(--accent-d) 8px, var(--accent-d) 16px);
+    transition:width .25s steps(8,end);
   }
   .bar-label{
     position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
@@ -51,7 +62,7 @@
   }
 
   /* Control panel */
-  .panel{ padding:14px; display:grid; grid-template-columns: 1fr 1fr auto; gap:12px; align-items:end; }
+  .panel{ padding:14px; display:grid; grid-template-columns:1fr 1fr auto; gap:12px; align-items:end; }
   .panel.pixel-frame{ background:#111; }
   .field label{ display:block; font-size:14px; color:var(--muted); margin-bottom:6px; }
   input[type="number"]{
@@ -70,7 +81,7 @@
   button:active{ transform:translateY(1px); }
 
   .stats{
-    grid-column:1 / -1; display:flex; justify-content:space-between; align-items:center;
+    grid-column:1/-1; display:flex; justify-content:space-between; align-items:center;
     color:var(--muted); font-size:16px;
   }
   .stats strong{ color:var(--text); }
@@ -78,7 +89,7 @@
   /* Subtle scanlines */
   .scanlines{
     position:fixed; inset:0; pointer-events:none; mix-blend-mode:soft-light; opacity:.08;
-    background: repeating-linear-gradient(to bottom,
+    background:repeating-linear-gradient(to bottom,
       rgba(255,255,255,.06) 0px, rgba(255,255,255,.06) 2px,
       rgba(0,0,0,0) 2px, rgba(0,0,0,0) 4px);
   }
@@ -102,6 +113,9 @@
 </head>
 <body>
   <div class="wrap">
+    <!-- Title -->
+    <h1 class="pixel-frame title">Speedrun XP</h1>
+
     <!-- Big XP Bar -->
     <div class="pixel-frame bar-outer" aria-label="XP progress">
       <div class="bar-inner"></div>
@@ -152,6 +166,15 @@
 
   const params = new URLSearchParams(location.search);
 
+  /* ========= NAMESPACE STORAGE KEYS =========
+     Keeps this site independent from any other repo on the same domain.
+     You can also force a specific namespace with ?ns=MyClass.
+  */
+  const NS =
+    params.get("ns") ||
+    (location.pathname.split("/")[1] || "xp"); // repo name on GitHub Pages
+  const key = (name) => `${NS}_${name}`;
+
   // Tiers at 25, 50, 75, 100
   let lastTier = 0; // highest tier already celebrated
 
@@ -167,6 +190,7 @@
     flashContent.innerHTML = html;
     flash.classList.add("show");
     clearTimeout(flash._timer);
+    // default durations: 1.8s (level-up) / 2.6s (congrats)
     flash._timer = setTimeout(()=> flash.classList.remove("show"), isCongrats ? 2600 : 1800);
   }
   // Allow dismiss by click
@@ -205,20 +229,20 @@
         showFlash("<h1>LEVEL UP!</h1><p>Reached " + tier + "%</p>", false);
       }
       lastTier = tier;
-      localStorage.setItem("xp_last_tier", String(lastTier));
+      localStorage.setItem(key("xp_last_tier"), String(lastTier));
     }
 
-    localStorage.setItem("xp_earned", e);
-    localStorage.setItem("xp_total", t);
-    document.title = `Class XP: ${p}%`;
+    localStorage.setItem(key("xp_earned"), e);
+    localStorage.setItem(key("xp_total"), t);
+    document.title = `Speedrun XP (${NS}): ${p}%`;
   }
 
   function loadInitial(){
-    const e = params.get("earned") ?? localStorage.getItem("xp_earned");
-    const t = params.get("total")  ?? localStorage.getItem("xp_total");
+    const e = params.get("earned") ?? localStorage.getItem(key("xp_earned"));
+    const t = params.get("total")  ?? localStorage.getItem(key("xp_total"));
     if(e) earned.value = e;
     if(t) total.value  = t;
-    lastTier = parseInt(localStorage.getItem("xp_last_tier") || "0", 10);
+    lastTier = parseInt(localStorage.getItem(key("xp_last_tier")) || "0", 10);
     update(false); // draw without sounds on load
   }
 
@@ -228,11 +252,11 @@
     if(e.key === "Enter") update(true);
   }));
 
-  // RESET button: clear storage, inputs, overlay, sounds, and redraw to 0%
+  // RESET button: clear namespaced storage, inputs, overlay, sounds, and redraw to 0%
   $("reset").addEventListener("click", () => {
-    localStorage.removeItem("xp_earned");
-    localStorage.removeItem("xp_total");
-    localStorage.removeItem("xp_last_tier");
+    localStorage.removeItem(key("xp_earned"));
+    localStorage.removeItem(key("xp_total"));
+    localStorage.removeItem(key("xp_last_tier"));
     earned.value = "";
     total.value = "";
     lastTier = 0;
